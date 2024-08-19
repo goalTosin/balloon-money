@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Util for making images of a balloon - Baloon Money</title>
+    <style>
+      :root {
+        --border-color: rgba(0, 0, 0, 0.651);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,body {
+        height: 100%;
+      }
+      body {
+        padding: 0;
+        margin: 0;
+      }
+      .container {
+        display: flex;
+        border: 1px solid black;
+        border-radius: 0.5em;
+        /* width: 100%; */
+        box-shadow: 2px 2px 7px 2px rgba(0, 0, 0, 0.363);
+        max-height: 100%;
+        margin: 0.5em;
+      }
+      .input {
+        border-right: 1px solid var(--border-color);
+      }
+      .input > div:not(:last-child),
+      .details > div:not(:last-child) {
+        border-bottom: 1px solid var(--border-color);
+      }
+      .input > div,
+      .details > div {
+        padding: 1em;
+        display: flex;
+        align-items: center;
+        gap: 1em;
+        /* justify-content: center; */
+      }
+      .output {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+      }
+      #height,
+      #width {
+        width: min-content;
+      }
+      canvas {
+        background-color: rgba(0, 0, 0, 0.295);
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        min-width: 50%;
+        min-height: 50%;
+        image-rendering: pixelated;
+      }
+      .details {
+        border-left: 1px solid var(--border-color);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="input">
+        <div>
+          <label for="color">Color:</label>
+          <input type="color" name="color" id="color" />
+        </div>
+        <div>
+          <label for="scale">Scale:</label>
+          <input type="range" max="40" name="scale" id="scale" />
+        </div>
+        <div>
+          <button onclick="draw()">Regenerate</button>
+        </div>
+        <div>
+          <button onclick="download()">Download</button>
+        </div>
+      </div>
+      <div class="output">
+        <canvas></canvas>
+      </div>
+      <div class="details">
+        <div>
+          <label for="width">Width:</label>
+          <input type="number" name="width" id="width" />
+        </div>
+        <div>
+          <label for="height">Height:</label>
+          <input type="number" name="height" id="height" />
+        </div>
+      </div>
+    </div>
+    <script>
+      const canvas = document.querySelector("canvas");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      let scale = 40;
+      const image = new Image();
+      image.src = "./balloon.svg";
+      image.onload = () => {
+        image.loaded = true;
+      };
+      const newC = {
+        r: 0,
+        g: 0,
+        b: 255,
+      };
+      function download() {
+        let l = canvas.toDataURL("image/webp");
+        const a = document.createElement("a");
+
+        a.href = l;
+        a.download = " "; // File name
+        a.target = "_blank"; // File name
+        // a.
+
+        // Append the link to the DOM
+        document.body.appendChild(a);
+
+        // Simulate a click on the link to trigger the download
+        a.click();
+
+        // Clean up by removing the link and the URL object
+        document.body.removeChild(a);
+      }
+      function toHex(d) {
+        return Math.round(d).toString(16).padStart(2, "0");
+      }
+      function toNumFromHex(d) {
+        return parseInt(d, 16);
+      }
+
+      function updateDom() {
+        const colorElt = document.getElementById("color");
+        colorElt.value = "#" + toHex(newC.r) + toHex(newC.g) + toHex(newC.b);
+        const scaleElt = document.getElementById("scale");
+        scaleElt.value = scale;
+      }
+      updateDom();
+
+      function connectDom() {
+        const colorElt = document.getElementById("color");
+        colorElt.oninput = () => {
+          const color = colorElt.value.substring(1);
+          newC.r = toNumFromHex(color.substring(0, 2));
+          newC.g = toNumFromHex(color.substring(2, 4));
+          newC.b = toNumFromHex(color.substring(4, 6));
+          draw();
+
+          // console.log(newC);
+        };
+        // colorElt.value = "#" + toHex(newC.r) + toHex(newC.g) + toHex(newC.b);
+        const scaleElt = document.getElementById("scale");
+        scaleElt.oninput = () => {
+          scale = scaleElt.valueAsNumber;
+          draw();
+        };
+
+        let widthElt = document.getElementById("width");
+        let heightElt = document.getElementById("height");
+
+        widthElt.oninput = () => {
+          // let ratio = () => image.width / image.height
+          scale = widthElt.valueAsNumber / image.width;
+          heightElt.value = image.height * scale;
+          draw(false);
+          updateDom();
+          // updateWidthElt();
+        };
+        heightElt.oninput = () => {
+          scale = heightElt.valueAsNumber / image.height;
+          widthElt.value = image.width * scale;
+
+          draw(false);
+          updateDom();
+
+          // updateWidthElt();
+        };
+        // scaleElt.value = scale
+      }
+      connectDom();
+
+      function updateWidthElt() {
+        widthElt.value = canvas.width;
+        heightElt.value = canvas.height;
+      }
+      let widthElt = document.getElementById("width");
+      let heightElt = document.getElementById("height");
+
+      function draw(drawit = true) {
+        if (image.loaded) {
+          canvas.width = image.width * scale;
+          canvas.height = image.height * scale;
+          if (drawit) {
+            updateWidthElt();
+          }
+          ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+          const raw = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = raw.data;
+          for (let i = 0; i < data.length; i += 4) {
+            let r = data[i] / 255;
+            let g = data[i + 1] / 255;
+            let b = data[i + 2] / 255;
+            data[i] = r * newC.r //* (Math.random() * 0.1 + 0.9);
+            data[i + 1] = g * newC.g// * (Math.random() * 0.1 + 0.9);
+            data[i + 2] = b * newC.b //* (Math.random() * 0.1 + 0.9);
+          }
+          ctx.putImageData(raw, 0, 0);
+        } else {
+          setTimeout(draw, 500);
+        }
+      }
+      draw();
+    </script>
+  </body>
+</html>
